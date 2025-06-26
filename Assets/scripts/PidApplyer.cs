@@ -30,13 +30,13 @@ public class PidApplyer : UdonSharpBehaviour
         appendPlayer();
 
         RequestSerialization();
-        
+        this.gameObject.GetComponent<Renderer>().material = mat;
     }
 
     public override void OnDeserialization()
     {
         base.OnDeserialization();
-        appendPlayer();
+        //appendPlayer();
     }
 
     private void appendPlayer()
@@ -52,7 +52,6 @@ public class PidApplyer : UdonSharpBehaviour
             }
             applyers[index].Constructor(pid, capsules);
         }
-        this.gameObject.GetComponent<Renderer>().material = mat;
 
         
     }

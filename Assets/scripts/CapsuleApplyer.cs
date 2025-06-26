@@ -46,8 +46,15 @@ public class CapsuleApplyer : UdonSharpBehaviour
         capsulesPreviousRotation = new Quaternion[Capsules.Length];
         boneCapsuleDict = CreateBoneToCapsuleDict(Capsules);
 
-        //antiboneCapsuleDict = CreateAntiBoneToCapsuleDict(boneCapsuleDict);
-        playerID = pid;
+
+
+        Networking.SetOwner(player, this.gameObject);
+        for (int i=0; i < Capsules.Length; i++)
+        {
+            Networking.SetOwner(player, Capsules[i]);
+        }
+            //antiboneCapsuleDict = CreateAntiBoneToCapsuleDict(boneCapsuleDict);
+            playerID = pid;
     }
 
     /// <summary>
