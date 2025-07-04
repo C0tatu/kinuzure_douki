@@ -9,7 +9,7 @@ public class CapsuleApplyer : UdonSharpBehaviour
 
     public int playerID = 0;
     private VRCPlayerApi player;
-    private GameObject[] Capsules;
+    public GameObject[] Capsules;
     private int[] boneCapsuleDict;
     int[] antiboneCapsuleDict;
 

@@ -13,6 +13,10 @@ public class SoundPlayer : UdonSharpBehaviour
     public GameObject[] CapsuleParents;
     private GameObject[][] Capsules;
     public calcFuncs calculator;
+
+    public AudioSource[] FrictionSources;
+    public AudioSource[] CrumpingSources;
+
     private string[][] crumpingPairs = new string[][]
     {
         new string[] {"LeftShoulder", "LeftUpperArm"},
@@ -84,7 +88,30 @@ public class SoundPlayer : UdonSharpBehaviour
                                 angv1 = capsuleApplyers[i].CapsuleAngVelocities[k];
                             }
                             Vector3 crumpingV = calculator.CrumpingCalc(angv1, angv2);
+                            Collider c1 = capsuleApplyers[i].Capsules[j].GetComponent<Collider>();
+                            Collider c2 = capsuleApplyers[i].Capsules[k].GetComponent<Collider>();
+                            Vector3 soundPoint = (c1.ClosestPoint(c2.transform.position) + c2.ClosestPoint(c1.transform.position)) / 2f;
                             //ここで音を鳴らす
+
+                            float threshold = 0f;
+                            //音再生
+                            if (!isActiveAuidoNearby(false, soundPoint))
+                            {
+                                if (crumpingV.magnitude > threshold)
+                                {
+                                    int audioSourceNumber = getAvailableAudioSource(CrumpingSources);
+                                    if (audioSourceNumber != -1)
+                                    {
+                                        playSound(CrumpingSources[audioSourceNumber], soundPoint, crumpingV, false);
+                                    }
+                                    else
+                                    {
+                                        Debug.Log("crumping -> -1");
+                                    }
+                                }
+
+                            }
+
                         }
 
                     }
@@ -99,7 +126,26 @@ public class SoundPlayer : UdonSharpBehaviour
                                 Vector3 angv1 = capsuleApplyers[i].CapsuleAngVelocities[j];
                                 Vector3 angv2 = capsuleApplyers[i].CapsuleAngVelocities[k];
                                 Vector3 frictionV = calculator.FrictionCalc(tar1, tar2, v1, v2, angv1, angv2);
+                                Collider c1 = capsuleApplyers[i].Capsules[j].GetComponent<Collider>();
+                                Collider c2 = capsuleApplyers[i].Capsules[k].GetComponent<Collider>();
+                                Vector3 soundPoint = (c1.ClosestPoint(c2.transform.position) + c2.ClosestPoint(c1.transform.position)) / 2f;
+                                float threshold = 0.25f;
                                 //ここで音を鳴らす
+                                if (!isActiveAuidoNearby(true, soundPoint))//近くに再生中音源がないなら
+                                {
+                                    if (frictionV.magnitude > threshold) // && frictionTop < frictionPairs.Length
+                                    {
+                                        int audioSourceNumber = getAvailableAudioSource(FrictionSources);
+                                        if (audioSourceNumber != -1)
+                                        {
+                                            playSound(FrictionSources[audioSourceNumber], soundPoint, frictionV, true);
+                                        }
+                                        else
+                                        {
+                                            Debug.Log("friction -> -1");
+                                        }
+                                    }
+                                }
                             }
 
                         }
@@ -132,8 +178,27 @@ public class SoundPlayer : UdonSharpBehaviour
                                 Vector3 angv1 = capsuleApplyers[i].CapsuleAngVelocities[j];
                                 Vector3 angv2 = capsuleApplyers[k].CapsuleAngVelocities[l];
                                 Vector3 frictionV = calculator.FrictionCalc(tar1, tar2, v1, v2, angv1, angv2);
-                                //ここで音を鳴らす
+                                Collider c1 = capsuleApplyers[i].Capsules[j].GetComponent<Collider>();
+                                Collider c2 = capsuleApplyers[k].Capsules[l].GetComponent<Collider>();
+                                Vector3 soundPoint = (c1.ClosestPoint(c2.transform.position) + c2.ClosestPoint(c1.transform.position)) / 2f;
 
+                                float threshold = 0.25f;
+                                //ここで音を鳴らす
+                                if (!isActiveAuidoNearby(true, soundPoint))//近くに再生中音源がないなら
+                                {
+                                    if (frictionV.magnitude > threshold) // && frictionTop < frictionPairs.Length
+                                    {
+                                        int audioSourceNumber = getAvailableAudioSource(FrictionSources);
+                                        if (audioSourceNumber != -1)
+                                        {
+                                            playSound(FrictionSources[audioSourceNumber], soundPoint, frictionV, true);
+                                        }
+                                        else
+                                        {
+                                            Debug.Log("friction -> -1");
+                                        }
+                                    }
+                                }
                             }
 
                         }
@@ -149,6 +214,69 @@ public class SoundPlayer : UdonSharpBehaviour
         {
             if (crumpingPairs[i][0] == name1 && crumpingPairs[i][1] == name2) return true;
             if (crumpingPairs[i][1] == name1 && crumpingPairs[i][0] == name2) return true;
+        }
+        return false;
+    }
+
+    private void playSound(AudioSource source, Vector3 point, Vector3 Speed, bool isFriction)
+    {
+        if (isFriction)
+        {
+            float maxVolume = 0.6f;
+            float maxPitch = 3f;
+            //float param = Speed.magnitude / frictionMaxSpeed;
+            float param = Speed.magnitude;
+            source.volume = param * maxVolume;
+            source.pitch = param * maxPitch;
+            //Debug.Log($"friction, param: {param}");
+        }
+        else
+        {
+            float maxVolume = 0.4f;
+            float maxPitch = 3f;
+            //float param = Speed.magnitude / crumpingMaxSpeed;
+            float param = Speed.magnitude;
+            source.volume = param * maxVolume;
+            source.pitch = param * maxPitch;
+            //Debug.Log($"crumping, param: {param}");
+        }
+        source.transform.position = point;
+        source.Play();
+
+    }
+
+    private int getAvailableAudioSource(AudioSource[] arr)
+    {
+        for (int i = 0; i < arr.Length; i++)
+        {
+            if (arr[i].isPlaying == false) return i;
+        }
+        return -1;
+    }
+
+    private bool isActiveAuidoNearby(bool isFriction, Vector3 pos)
+    {
+        float threshhold = 0.15f;
+        if (isFriction)
+        {
+            for (int i = 0; i < FrictionSources.Length; i++)
+            {
+                if (Vector3.Distance(pos, FrictionSources[i].transform.position) < threshhold)
+                {
+                    
+                    if (FrictionSources[i].isPlaying) return true;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < CrumpingSources.Length; i++)
+            {
+                if (Vector3.Distance(pos, CrumpingSources[i].transform.position) < threshhold)
+                {
+                    if (CrumpingSources[i].isPlaying) return true;
+                }
+            }
         }
         return false;
     }
